@@ -16,6 +16,9 @@ export class Admin implements OnInit {
   loading = false;
   expandedPollId: string | null = null;
   searchQuery = '';
+  fromDate = '';
+  toDate = '';
+  statusFilter = '';
   deletingPollId: string | null = null;
 
   constructor(
@@ -30,8 +33,8 @@ export class Admin implements OnInit {
 
   loadAllPolls(): void {
     this.loading = true;
-    this.pollService.getPolls(this.searchQuery).subscribe({
-      next: (data: any[]) => {
+    this.pollService.getPolls(this.searchQuery, this.fromDate, this.toDate, this.statusFilter).subscribe({
+      next: (data) => {
         this.polls = data;
         this.loading = false;
         this.polls.forEach((poll) => this.loadResults(poll._id));
@@ -48,18 +51,18 @@ export class Admin implements OnInit {
     this.loadAllPolls();
   }
 
-  clearSearch(): void {
+  clearFilters(): void {
     this.searchQuery = '';
+    this.fromDate = '';
+    this.toDate = '';
+    this.statusFilter = '';
     this.loadAllPolls();
   }
 
   loadResults(pollId: string): void {
     this.pollService.getResults(pollId).subscribe({
-      next: (data: any) => {
-        this.pollResults[pollId] = {
-          results: data.results,
-          totalVoters: data.totalVoters,
-        };
+      next: (data) => {
+        this.pollResults[pollId] = { results: data.results, totalVoters: data.totalVoters };
         this.cdr.detectChanges();
       },
       error: () => {},
@@ -67,8 +70,7 @@ export class Admin implements OnInit {
   }
 
   deletePoll(pollId: string): void {
-    if (!confirm('Are you sure you want to delete this poll? All votes will also be deleted.')) return;
-
+    if (!confirm('Delete this poll? It will be hidden from voting but data is preserved.')) return;
     this.deletingPollId = pollId;
     this.pollService.deletePoll(pollId).subscribe({
       next: () => {
@@ -88,7 +90,7 @@ export class Admin implements OnInit {
     this.expandedPollId = this.expandedPollId === pollId ? null : pollId;
   }
 
-  getResults(pollId: string) {
+  getResults(pollId: string): any[] {
     return this.pollResults[pollId]?.results || [];
   }
 
@@ -97,15 +99,12 @@ export class Admin implements OnInit {
   }
 
   getVoteCount(pollId: string, optionText: string): number {
-    const results = this.getResults(pollId);
-    const found = results.find((r) => r.option === optionText);
-    return found ? found.voteCount : 0;
+    return this.getResults(pollId).find((r) => r.option === optionText)?.voteCount || 0;
   }
 
   getPercentage(pollId: string, optionText: string): number {
     const total = this.getTotalVoters(pollId);
-    if (!total) return 0;
-    return Math.round((this.getVoteCount(pollId, optionText) / total) * 100);
+    return total ? Math.round((this.getVoteCount(pollId, optionText) / total) * 100) : 0;
   }
 
   getTopOption(pollId: string): string {
@@ -121,30 +120,21 @@ export class Admin implements OnInit {
     return this.polls.reduce((sum, poll) => sum + poll.options.length, 0);
   }
 
-  getEndedPollsCount(): number {
-    return this.polls.filter((poll) => this.isPollEnded(poll)).length;
+  getActivePollsCount(): number {
+    return this.polls.filter((p) => this.getPollStatus(p) === 'active').length;
   }
 
-  isPollActive(poll: any): boolean {
+  getPollStatus(poll: any): 'deleted' | 'active' | 'inactive' | 'upcoming' {
+    if (poll.isDeleted) return 'deleted';
     const now = new Date();
-    return poll.isActive && new Date(poll.startDate) <= now && new Date(poll.endDate) >= now;
-  }
-
-  isPollUpcoming(poll: any): boolean {
-    return new Date(poll.startDate) > new Date();
-  }
-
-  isPollEnded(poll: any): boolean {
-    return new Date(poll.endDate) < new Date() || !poll.isActive;
+    if (new Date(poll.startDate) > now) return 'upcoming';
+    if (new Date(poll.endDate) < now || !poll.isActive) return 'inactive';
+    return 'active';
   }
 
   formatDate(date: string): string {
     return new Date(date).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      day: '2-digit', month: 'short', year: 'numeric',
     });
   }
 

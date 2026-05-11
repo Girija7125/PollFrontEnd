@@ -13,6 +13,8 @@ import { Router } from '@angular/router';
 export class Poll {
   pollForm = new FormGroup({
     question: new FormControl('', [Validators.required, Validators.minLength(5)]),
+    startDate: new FormControl('', [Validators.required]),
+    endDate: new FormControl('', [Validators.required]),
     options: new FormArray([
       new FormControl('', [Validators.required]),
       new FormControl('', [Validators.required]),
@@ -51,12 +53,22 @@ export class Poll {
     }
   }
 
+  toDateOnly(dateStr: string): string {
+    const d = new Date(dateStr);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
   startEdit(poll: any): void {
     this.editingPollId = poll._id;
     this.editingPollOptions = poll.options;
     this.successMessage = '';
     this.errorMessage = '';
-    this.pollForm.patchValue({ question: poll.question });
+    this.pollForm.patchValue({
+      question: poll.question,
+      startDate: this.toDateOnly(poll.startDate),
+      endDate: this.toDateOnly(poll.endDate),
+    });
     this.options.clear();
     poll.options.forEach((opt: any) => {
       this.options.push(new FormControl(opt.text, Validators.required));
@@ -79,6 +91,8 @@ export class Poll {
     if (this.editingPollId) {
       const payload = {
         question: this.pollForm.value.question,
+        startDate: new Date(this.pollForm.value.startDate!).toISOString(),
+        endDate: new Date(this.pollForm.value.endDate! + 'T23:59:59').toISOString(),
         options: (this.pollForm.value.options || []).map((o: any, i: number) => {
           const original = this.editingPollOptions[i];
           return original ? { _id: original._id, text: o } : { text: o };
@@ -94,15 +108,17 @@ export class Poll {
           this.cdr.detectChanges();
           this.resetForm();
         },
-        error: () => {
+        error: (err) => {
           this.loading = false;
-          this.errorMessage = 'Failed to update poll. Please try again.';
+          this.errorMessage = err.error?.message || 'Failed to update poll. Please try again.';
           this.cdr.detectChanges();
         },
       });
     } else {
       const payload = {
         question: this.pollForm.value.question,
+        startDate: new Date(this.pollForm.value.startDate!).toISOString(),
+        endDate: new Date(this.pollForm.value.endDate! + 'T23:59:59').toISOString(),
         options: (this.pollForm.value.options || []).map((o: any) => ({ text: o })),
       };
 
@@ -113,9 +129,9 @@ export class Poll {
           this.cdr.detectChanges();
           this.resetForm();
         },
-        error: () => {
+        error: (err) => {
           this.loading = false;
-          this.errorMessage = 'Failed to create poll. Please try again.';
+          this.errorMessage = err.error?.message || 'Failed to create poll. Please try again.';
           this.cdr.detectChanges();
         },
       });

@@ -60,11 +60,22 @@ export class PollService {
   }
 
   createPoll(data: any): Observable<any> {
-    return this.http.post(`${this.baseUrl}/poll`, data, this.authHeaders);
+    return this.http.post(`${this.baseUrl}/polls`, data, this.authHeaders);
   }
 
-  getPolls(search: string = ''): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/polls?search=${search}`);
+  getPolls(
+    search: string = '',
+    from: string = '',
+    to: string = '',
+    status: string = '',
+  ): Observable<any[]> {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (status) params.set('status', status);
+    const query = params.toString();
+    return this.http.get<any[]>(`${this.baseUrl}/polls${query ? '?' + query : ''}`);
   }
 
   deletePoll(id: string): Observable<any> {

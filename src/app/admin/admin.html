@@ -8,8 +8,10 @@
     <div class="d-flex gap-2">
       <button class="btn btn-outline-secondary btn-sm" (click)="refresh()" [disabled]="loading">
         <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
-        {{ loading ? 'Refreshing...' : '&#8635; Refresh' }}
+        <span *ngIf="!loading"><i class="fas fa-sync-alt"></i> Refresh</span>
+        <span *ngIf="loading">Refreshing...</span>
       </button>
+
       <button class="btn btn-primary btn-sm px-3" (click)="goToVoting()">
         Go to Voting
       </button>
@@ -45,34 +47,52 @@
       <div class="card border-0 shadow-sm">
         <div class="card-body py-3 px-4">
           <p class="text-muted small mb-1">Active Polls</p>
-          <h3 class="fw-bold mb-0 text-info">
-            {{ polls.length - getEndedPollsCount() }}
-          </h3>
+          <h3 class="fw-bold mb-0 text-info">{{ getActivePollsCount() }}</h3>
         </div>
       </div>
     </div>
   </div>
 
   <div class="card border-0 shadow-sm mb-4">
-    <div class="card-body py-3 px-4">
-      <div class="input-group">
-        <input
-          type="text"
-          class="form-control"
-          placeholder="Search polls by question..."
-          [(ngModel)]="searchQuery"
-          (keyup.enter)="onSearch()"
-        />
-        <button class="btn btn-primary px-4" (click)="onSearch()">
-          Search
-        </button>
-        <button
-          *ngIf="searchQuery"
-          class="btn btn-outline-secondary"
-          (click)="clearSearch()"
-        >
-          &#10005; Clear
-        </button>
+    <div class="card-body p-4">
+      <div class="row g-2 align-items-end">
+
+        <div class="col-md-3">
+          <label class="form-label fw-medium small text-muted mb-1">Search</label>
+          <input type="text" class="form-control" placeholder="Search by question..." [(ngModel)]="searchQuery"
+            (keyup.enter)="onSearch()" />
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label fw-medium small text-muted mb-1">From Date</label>
+          <input type="date" class="form-control" [(ngModel)]="fromDate" />
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label fw-medium small text-muted mb-1">To Date</label>
+          <input type="date" class="form-control" [(ngModel)]="toDate" />
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-medium small text-muted mb-1">Status</label>
+          <select class="form-select" [(ngModel)]="statusFilter">
+            <option value="">All</option>
+            <option value="active">Active</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="inactive">Inactive (Expired)</option>
+          </select>
+        </div>
+
+        <div class="col-md-2 d-flex gap-2">
+          <button class="btn btn-primary flex-grow-1" (click)="onSearch()" [disabled]="loading">
+            <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+            Search
+          </button>
+          <button class="btn btn-outline-secondary" (click)="clearFilters()" [disabled]="loading" title="Clear filters">
+            Clear
+          </button>
+        </div>
+
       </div>
     </div>
   </div>
@@ -84,41 +104,36 @@
 
   <div *ngIf="!loading && polls.length === 0" class="text-center py-5">
     <h6 class="text-muted">
-      {{ searchQuery ? 'No polls matched your search.' : 'No polls found.' }}
+      {{ searchQuery || fromDate || toDate || statusFilter ? 'No polls matched your filters.' : 'No polls found.' }}
     </h6>
-    <button *ngIf="searchQuery" class="btn btn-outline-secondary btn-sm mt-2" (click)="clearSearch()">
-      Clear Search
+    <button *ngIf="searchQuery || fromDate || toDate || statusFilter" class="btn btn-outline-secondary btn-sm mt-2"
+      (click)="clearFilters()">
+      Clear Filters
     </button>
   </div>
 
   <div class="d-flex flex-column gap-3">
     <div *ngFor="let poll of polls" class="card border-0 shadow-sm">
 
-      <div
-        class="card-header bg-white border-0 py-3 px-4"
-        style="cursor: pointer;"
-        (click)="toggleExpand(poll._id)"
-      >
+      <div class="card-header bg-white border-0 py-3 px-4" style="cursor: pointer;" (click)="toggleExpand(poll._id)">
         <div class="d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center gap-3">
-            <div
-              class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-              style="width: 38px; height: 38px; background-color: #e8f0fe;"
-            >
+            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+              style="width: 38px; height: 38px; background-color: #e8f0fe;">
               <span class="fw-bold text-primary small">{{ polls.indexOf(poll) + 1 }}</span>
             </div>
             <div>
               <div class="d-flex align-items-center gap-2 mb-1">
                 <p class="mb-0 fw-semibold text-dark">{{ poll.question }}</p>
-                <span
-                  class="badge"
-                  [ngClass]="{
-                    'bg-success-subtle text-success': isPollActive(poll),
-                    'bg-warning-subtle text-warning': isPollUpcoming(poll),
-                    'bg-danger-subtle text-danger': isPollEnded(poll)
-                  }"
-                >
-                  {{ isPollActive(poll) ? 'Active' : isPollUpcoming(poll) ? 'Upcoming' : 'Ended' }}
+                <span class="badge" [ngClass]="{
+                    'bg-success-subtle text-success': getPollStatus(poll) === 'active',
+                    'bg-warning-subtle text-warning': getPollStatus(poll) === 'upcoming',
+                    'bg-secondary-subtle text-secondary': getPollStatus(poll) === 'inactive',
+                    'bg-danger-subtle text-danger': getPollStatus(poll) === 'deleted'
+                  }">
+                  {{ getPollStatus(poll) === 'active' ? 'Active' :
+                  getPollStatus(poll) === 'upcoming' ? 'Upcoming' :
+                  getPollStatus(poll) === 'inactive' ? 'Expired' : 'Deleted' }}
                 </span>
               </div>
               <div class="d-flex gap-3 flex-wrap">
@@ -127,46 +142,50 @@
                   {{ getTotalVoters(poll._id) }} {{ getTotalVoters(poll._id) === 1 ? 'vote' : 'votes' }}
                 </small>
                 <small class="text-muted">
-                  Start: <span class="text-dark">{{ formatDate(poll.startDate) }}</span>
+                  From: <span class="text-dark fw-medium">{{ formatDate(poll.startDate) }}</span>
                 </small>
                 <small class="text-muted">
-                  End: <span class="text-dark">{{ formatDate(poll.endDate) }}</span>
+                  To: <span class="text-dark fw-medium">{{ formatDate(poll.endDate) }}</span>
                 </small>
               </div>
             </div>
           </div>
 
           <div class="d-flex align-items-center gap-2">
-            <button
-              class="btn btn-outline-warning btn-sm"
-              (click)="$event.stopPropagation(); goToEdit(poll)"
-            >
-              &#9998; Edit
+            <button *ngIf="getPollStatus(poll) !== 'deleted'" class="btn btn-outline-warning btn-sm"
+              (click)="$event.stopPropagation(); goToEdit(poll)">
+              Edit
             </button>
-            <button
-              class="btn btn-outline-danger btn-sm"
-              (click)="$event.stopPropagation(); deletePoll(poll._id)"
-              [disabled]="deletingPollId === poll._id"
-            >
+            <button *ngIf="getPollStatus(poll) !== 'deleted'" class="btn btn-outline-danger btn-sm"
+              (click)="$event.stopPropagation(); deletePoll(poll._id)" [disabled]="deletingPollId === poll._id">
               <span *ngIf="deletingPollId === poll._id" class="spinner-border spinner-border-sm me-1"></span>
-              &#128465; Delete
+              Delete
             </button>
+            <span *ngIf="getPollStatus(poll) === 'deleted'" class="badge bg-danger-subtle text-danger px-3 py-2">
+              Deleted
+            </span>
             <span class="text-muted ms-1">
-              {{ expandedPollId === poll._id ? '&#9650;' : '&#9660;' }}
+              <i *ngIf="expandedPollId === poll._id" class="bi bi-chevron-up"></i>
+              <i *ngIf="expandedPollId !== poll._id" class="bi bi-chevron-down"></i>
             </span>
           </div>
+
         </div>
       </div>
 
       <div *ngIf="expandedPollId === poll._id" class="card-body px-4 pb-4 pt-0">
         <hr class="mt-0 mb-3" />
 
-        <div *ngIf="isPollEnded(poll)" class="alert alert-danger border-0 rounded-3 py-2 px-3 mb-3">
-          &#9888; This poll has ended. Voting is disabled.
+        <div *ngIf="getPollStatus(poll) === 'deleted'" class="alert alert-danger border-0 rounded-3 py-2 px-3 mb-3">
+          This poll has been deleted and is no longer visible to users.
         </div>
 
-        <div *ngIf="isPollUpcoming(poll)" class="alert alert-warning border-0 rounded-3 py-2 px-3 mb-3">
-          &#9200; This poll has not started yet. Voting opens on {{ formatDate(poll.startDate) }}.
+        <div *ngIf="getPollStatus(poll) === 'inactive'" class="alert alert-secondary border-0 rounded-3 py-2 px-3 mb-3">
+          This poll has expired. Voting is closed.
+        </div>
+
+        <div *ngIf="getPollStatus(poll) === 'upcoming'" class="alert alert-warning border-0 rounded-3 py-2 px-3 mb-3">
+          Voting opens on {{ formatDate(poll.startDate) }}.
         </div>
 
         <div class="row g-2">
@@ -174,7 +193,7 @@
             <div class="border rounded-3 p-3">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="fw-medium text-dark">{{ opt.text }}</span>
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex gap-2">
                   <span class="badge bg-primary-subtle text-primary">
                     {{ getVoteCount(poll._id, opt.text) }} votes
                   </span>
@@ -184,21 +203,17 @@
                 </div>
               </div>
               <div class="progress rounded-pill" style="height: 8px;">
-                <div
-                  class="progress-bar rounded-pill"
+                <div class="progress-bar rounded-pill"
                   [ngClass]="getVoteCount(poll._id, opt.text) === getResults(poll._id)[0]?.voteCount && getVoteCount(poll._id, opt.text) > 0 ? 'bg-primary' : 'bg-secondary'"
-                  role="progressbar"
-                  [style.width.%]="getPercentage(poll._id, opt.text)"
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                ></div>
+                  role="progressbar" [style.width.%]="getPercentage(poll._id, opt.text)" aria-valuemin="0"
+                  aria-valuemax="100"></div>
               </div>
             </div>
           </div>
         </div>
 
         <div *ngIf="getTotalVoters(poll._id) === 0" class="text-center py-3">
-          <small class="text-muted">No votes cast yet on this poll.</small>
+          <small class="text-muted">No votes cast yet.</small>
         </div>
 
         <div *ngIf="getTotalVoters(poll._id) > 0" class="mt-3 p-3 rounded-3 bg-light">
