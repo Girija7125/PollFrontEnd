@@ -1,0 +1,88 @@
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-7">
+
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+          <h4 class="fw-bold mb-0">Create a Poll</h4>
+          <p class="text-muted small mb-0">Fill in the question and options below</p>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm" (click)="goToVoting()">
+          &larr; Back to Voting
+        </button>
+      </div>
+
+      <div *ngIf="successMessage" class="alert alert-success border-0 rounded-3">
+        &#10003; {{ successMessage }}
+      </div>
+
+      <div *ngIf="errorMessage" class="alert alert-danger border-0 rounded-3">
+        {{ errorMessage }}
+      </div>
+
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+          <form [formGroup]="pollForm" (ngSubmit)="createPoll()">
+
+            <div class="mb-4">
+              <label class="form-label fw-medium">Poll Question</label>
+              <input
+                formControlName="question"
+                class="form-control form-control-lg"
+                placeholder="e.g. What is your favourite programming language?"
+              />
+              <div
+                *ngIf="pollForm.get('question')?.invalid && pollForm.get('question')?.touched"
+                class="text-danger small mt-1"
+              >
+                Question must be at least 5 characters.
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-medium">Options</label>
+              <div formArrayName="options">
+                <div *ngFor="let opt of options.controls; let i = index" class="input-group mb-2">
+                  <span class="input-group-text bg-light text-muted">{{ i + 1 }}</span>
+                  <input
+                    [formControlName]="i"
+                    class="form-control"
+                    [placeholder]="'Option ' + (i + 1)"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger"
+                    (click)="removeOption(i)"
+                    [disabled]="options.length <= 2"
+                  >
+                    &#10005;
+                  </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm mt-2"
+                (click)="addOption()"
+              >
+                &#43; Add Option
+              </button>
+            </div>
+
+            <div class="d-grid">
+              <button
+                type="submit"
+                class="btn btn-primary btn-lg fw-semibold"
+                [disabled]="pollForm.invalid || loading"
+              >
+                <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+                {{ loading ? 'Creating...' : 'Create Poll' }}
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

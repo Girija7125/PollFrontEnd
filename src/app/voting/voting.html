@@ -1,0 +1,180 @@
+<div class="container-fluid py-5">
+  <div class="row justify-content-center">
+    <div class="col-6">
+
+      <div *ngIf="loadingPolls" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-3 mb-0">Loading polls...</p>
+      </div>
+
+      <div *ngIf="!selectedPoll && !loadingPolls">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+          <div>
+            <h4 class="mb-0 fw-bold">Available Polls</h4>
+            <p class="text-muted small mb-0">Select a poll to cast your vote</p>
+          </div>
+              <button class="btn btn-outline-secondary btn-sm" (click)="router.navigate(['/admin'])">
+      Admin Panel
+    </button>
+          <button class="btn btn-primary  px-3" (click)="goToCreatePoll()">
+             Create Poll
+          </button>
+        </div>
+
+        <div *ngIf="polls.length === 0" class="text-center py-5">
+          <div class="bg-light rounded-circle d-inline-flex p-4 mb-3">
+            <i class="fa-solid fa-square-plus"></i>
+          </div>
+          <h6 class="text-muted">No polls available</h6>
+          <p class="text-muted small mb-3">Check back later or create a new poll.</p>
+          <button class="btn btn-primary btn-sm px-4" (click)="goToCreatePoll()">
+             Create First Poll
+          </button>
+        </div>
+
+        <div class="d-flex flex-column gap-3">
+          <div *ngFor="let poll of polls" class="card border-0 shadow-sm">
+            <div class="card-body px-4 py-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <p class="mb-0 fw-semibold text-dark">{{ poll.question }}</p>
+                  <small class="text-muted">{{ poll.options.length }} options</small>
+                </div>
+                <div class="d-flex gap-2">
+                  <button
+                    class="btn btn-outline-warning btn-sm"
+                    (click)="goToEditPoll(poll)"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    class="btn btn-primary btn-sm px-3"
+                    (click)="selectPoll(poll)"
+                  >
+                    Vote
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="selectedPoll">
+        <button class="btn btn-link text-decoration-none text-muted ps-0 mb-3" (click)="goBack()">
+           Back to Polls
+        </button>
+
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+              <div>
+                <span class="badge bg-primary-subtle text-primary mb-2">Poll</span>
+                <h5 class="fw-bold mb-1">{{ selectedPoll.question }}</h5>
+                <p class="text-muted small mb-4">
+                  Choose one option. You can change your vote anytime.
+                </p>
+              </div>
+              <button
+                class="btn btn-outline-warning btn-sm"
+                (click)="goToEditPoll(selectedPoll)"
+              >
+                 Edit
+              </button>
+            </div>
+
+            <div
+              *ngIf="message"
+              class="alert border-0 rounded-3 mb-4 py-2 px-3"
+              [ngClass]="{
+                'alert-success bg-success-subtle text-success': messageType === 'success',
+                'alert-danger bg-danger-subtle text-danger': messageType === 'error',
+                'alert-info bg-info-subtle text-info': messageType === 'info'
+              }"
+            >
+              {{ message }}
+            </div>
+
+            <form [formGroup]="voteForm" (ngSubmit)="submitVote()">
+              <div class="d-flex flex-column gap-2 mb-4">
+                <label
+                  *ngFor="let opt of selectedPoll.options; let i = index"
+                  [for]="'opt-' + i"
+                  class="d-flex align-items-center border rounded-3 px-3 py-3 gap-3"
+                  [ngClass]="{
+                    'border-primary bg-primary-subtle': voteForm.get('selectedOption')?.value === opt._id,
+                    'bg-light': voteForm.get('selectedOption')?.value !== opt._id
+                  }"
+                  style="cursor: pointer;"
+                >
+                  <input
+                    type="radio"
+                    class="form-check-input mt-0 flex-shrink-0"
+                    [id]="'opt-' + i"
+                    [value]="opt._id"
+                    formControlName="selectedOption"
+                    style="width: 18px; height: 18px;"
+                  />
+                  <span class="fw-medium">{{ opt.text }}</span>
+                </label>
+              </div>
+
+              <div class="d-grid">
+                <button
+                  type="submit"
+                  class="btn btn-primary btn-lg fw-semibold"
+                  [disabled]="submitting"
+                >
+                  <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
+                  <span *ngIf="!submitting && !hasVoted">Submit Vote</span>
+                  <span *ngIf="!submitting && hasVoted">Change Vote</span>
+                  <span *ngIf="submitting">Submitting...</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div *ngIf="results.length > 0" class="card border-0 shadow-sm">
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <div>
+                <h6 class="fw-bold mb-0">Live Results</h6>
+                <small class="text-muted">
+                  {{ totalVoters }} {{ totalVoters === 1 ? 'person' : 'people' }} voted
+                </small>
+              </div>
+              <button
+                class="btn btn-outline-secondary btn-sm"
+                (click)="loadResults()"
+                [disabled]="loadingResults"
+              >
+                <span *ngIf="loadingResults" class="spinner-border spinner-border-sm me-1"></span>
+                {{ loadingResults ? 'Refreshing...' : '&#8635; Refresh' }}
+              </button>
+            </div>
+
+            <div *ngFor="let r of results; let last = last" [ngClass]="{ 'mb-4': !last, 'mb-0': last }">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-medium text-dark">{{ r.option }}</span>
+                <span class="text-muted small">{{ r.voteCount }} &middot; {{ getPercentage(r.voteCount) }}%</span>
+              </div>
+              <div class="progress rounded-pill" style="height: 10px;">
+                <div
+                  class="progress-bar rounded-pill"
+                  [ngClass]="getPercentage(r.voteCount) === getTopPercentage() ? 'bg-primary' : 'bg-secondary'"
+                  role="progressbar"
+                  [style.width.%]="getPercentage(r.voteCount)"
+                  [attr.aria-valuenow]="getPercentage(r.voteCount)"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

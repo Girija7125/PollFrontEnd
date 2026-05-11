@@ -1,0 +1,94 @@
+<div class="d-flex align-items-center justify-content-center min-vh-100">
+  <div class="card justify-content-center" style="width: 20rem;">
+    @if(activeTab === 'register') {
+      <div class="card-header text-white d-flex justify-content-center align-items-center">
+        <h5>Register User</h5>
+      </div>
+      <div class="card-body d-flex flex-column justify-content-center"> 
+        <form [formGroup]="registerForm" (ngSubmit)="onRegister()">
+          <label for="name">Name</label>
+          <input id="name" type="text" class="form-control" formControlName="name" placeholder="Enter Your Name"
+                 [class.is-invalid]="registerForm.get('name')?.touched && registerForm.get('name')?.invalid">
+          @if(registerForm.get("name")?.touched && registerForm.get("name")?.invalid) {
+            <div class="text-danger">Name must be at least 2 characters.</div>
+          }
+
+          <label for="email">Email</label>
+          <input id="email" type="email" class="form-control" formControlName="email" placeholder="Enter Your Email"
+                 [class.is-invalid]="registerForm.get('email')?.touched && registerForm.get('email')?.invalid">
+          @if(registerForm.get("email")?.touched && registerForm.get("email")?.invalid) {
+            <div class="text-danger">A valid email is required.</div>
+          }
+
+          <label for="password">Password</label>
+          <input id="password" type="password" class="form-control" formControlName="password" placeholder="Enter Your Password"
+                 [class.is-invalid]="registerForm.get('password')?.touched && registerForm.get('password')?.invalid">
+          @if(registerForm.get("password")?.touched && registerForm.get("password")?.invalid) {
+            <div class="text-danger">Password must be at least 8 characters.</div>
+          }
+
+          <label for="confirmPassword">Confirm Password</label>
+          <input id="confirmPassword" type="password" class="form-control" formControlName="confirmPassword" placeholder="Confirm Your Password"
+                 [class.is-invalid]="registerForm.get('confirmPassword')?.touched && registerForm.get('confirmPassword')?.invalid">
+          @if(registerForm.get("confirmPassword")?.touched && registerForm.get("confirmPassword")?.invalid) {
+            <div class="text-danger">Please confirm your password.</div>
+          }
+
+          <div class="d-flex justify-content-center gap-2 mt-3">
+            <button type="submit" class="btn btn-outline-secondary w-50" [disabled]="registerForm.invalid || registerLoading">Register</button>
+          </div>
+
+          <div class="d-flex justify-content-center mt-2">
+            <button type="button" class="btn btn-link" (click)="switchTab('login')">Already have an account? Login</button>
+          </div>
+        </form>
+      </div>
+    }
+
+    @if(activeTab === 'login') {
+     <div class="card-header text-white d-flex justify-content-center align-items-center">
+        <h5>Login User </h5>
+      </div>
+      @if(loginError) {
+        <div class="alert alert-danger py-2 mt-2">{{ loginError }}</div>
+      }
+      <div class="card-body d-flex flex-column justify-content-center">
+        <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
+          <label for="loginEmail" class="form-label">Email</label>
+          <input id="loginEmail" type="email" formControlName="email" class="form-control" placeholder="Enter Your Email"
+                 [class.is-invalid]="loginForm.get('email')?.touched && loginForm.get('email')?.invalid">
+          @if(loginForm.get('email')?.touched && loginForm.get('email')?.invalid) {
+            <div class="text-danger">A valid email is required.</div>
+          }
+
+          <label for="loginPassword" class="form-label mt-2">Password</label>
+          <div class="input-group">
+            <input id="loginPassword" [type]="showPassword ? 'text' : 'password'" class="form-control" formControlName="password"
+                   placeholder="Enter Your Password"
+                   [class.is-invalid]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid" />
+            <button type="button" class="btn btn-outline-secondary" (click)="togglePassword()" aria-label="Toggle password visibility">
+              <i class="bi" [ngClass]="showPassword ? 'bi-eye' : 'bi-eye-slash'"></i>
+            </button>
+          </div>
+          @if(loginForm.get('password')?.touched && loginForm.get('password')?.invalid) {
+            <div class="text-danger">Password must be at least 8 characters.</div>
+          }
+
+          <div class="d-flex justify-content-center gap-2">
+            <button type="submit" class="btn btn-primary mt-3 w-50" [disabled]="loginForm.invalid || loginLoading">
+              @if(loginLoading) {
+                <span class="spinner-border spinner-border-sm me-1"></span> Signing in...
+              } @else {
+                Login
+              }
+            </button>
+          </div>
+
+          <div class="d-flex justify-content-center mt-2">
+            <button type="button" class="btn btn-link" (click)="switchTab('register')">Don’t have an account? Register</button>
+          </div>
+        </form>
+      </div>
+    }
+  </div>
+</div>
